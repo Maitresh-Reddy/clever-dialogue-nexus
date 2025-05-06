@@ -7,10 +7,12 @@ import {
   Settings,
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  History
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "./ui/scroll-area";
 
 export default function Sidebar() {
   const { user, logout, isEmployee, isAdmin } = useAuth();
@@ -18,8 +20,8 @@ export default function Sidebar() {
 
   const handleLogout = () => {
     logout();
-    // Instead of using navigate, we use a regular function that doesn't depend on Router
-    window.location.href = "/";
+    // Using window.location.href instead of useNavigate
+    window.location.href = "/login";
   };
 
   // Mock chat history for demo
@@ -27,6 +29,10 @@ export default function Sidebar() {
     { id: '1', title: 'Project requirements', timestamp: new Date('2025-05-05T14:30:00') },
     { id: '2', title: 'User authentication flow', timestamp: new Date('2025-05-04T11:15:00') },
     { id: '3', title: 'Database migration', timestamp: new Date('2025-05-03T09:45:00') },
+    { id: '4', title: 'API documentation', timestamp: new Date('2025-05-02T15:20:00') },
+    { id: '5', title: 'Performance testing', timestamp: new Date('2025-05-01T10:10:00') },
+    { id: '6', title: 'Security review', timestamp: new Date('2025-04-30T16:45:00') },
+    { id: '7', title: 'Frontend updates', timestamp: new Date('2025-04-29T13:30:00') },
   ];
 
   return (
@@ -46,7 +52,7 @@ export default function Sidebar() {
 
       {/* Logo and title */}
       <div className={cn(
-        "flex items-center p-4 mb-6 border-b border-sidebar-border",
+        "flex items-center p-4 mb-2 border-b border-sidebar-border",
         collapsed ? "justify-center" : "justify-start"
       )}>
         <div className="bg-primary/20 rounded-md p-1 h-8 w-8 flex items-center justify-center">
@@ -55,38 +61,57 @@ export default function Sidebar() {
         {!collapsed && <h1 className="text-xl font-bold ml-2">BotLLM</h1>}
       </div>
 
-      {/* Navigation */}
-      <div className="flex-1 overflow-y-auto">
-        {/* Chat History - Only for employees */}
-        {isEmployee && (
-          <div className="mb-4">
-            {!collapsed && (
-              <h2 className="text-sm uppercase tracking-wider opacity-70 px-4 mb-2">
-                Chat History
-              </h2>
+      {/* New Chat Button */}
+      <div className="px-2 mb-4">
+        <Link to="/chat">
+          <Button 
+            variant="default" 
+            className={cn(
+              "w-full", 
+              collapsed ? "justify-center px-0" : "justify-start"
             )}
-            <div className="space-y-1 px-2">
-              {chatHistory.map((chat) => (
-                <Link
-                  key={chat.id}
-                  to={`/chat/${chat.id}`}
-                  className="flex items-center p-2 rounded-md hover:bg-sidebar-accent group"
-                >
-                  <MessageSquare size={18} className="flex-shrink-0" />
-                  {!collapsed && (
-                    <div className="ml-2 overflow-hidden">
-                      <p className="truncate text-sm">{chat.title}</p>
-                      <p className="text-xs opacity-70">
-                        {chat.timestamp.toLocaleDateString()}
-                      </p>
-                    </div>
-                  )}
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
+          >
+            <MessageSquare size={18} />
+            {!collapsed && <span className="ml-2">New Chat</span>}
+          </Button>
+        </Link>
       </div>
+
+      {/* Navigation */}
+      <ScrollArea className="flex-1">
+        <div className="pr-2">
+          {/* Chat History - Available for employees and admins */}
+          {(isEmployee || isAdmin) && (
+            <div className="mb-4">
+              {!collapsed && (
+                <h2 className="text-sm uppercase tracking-wider opacity-70 px-4 mb-2 flex items-center">
+                  <History size={14} className="mr-1" />
+                  Chat History
+                </h2>
+              )}
+              <div className="space-y-1 px-2">
+                {chatHistory.map((chat) => (
+                  <Link
+                    key={chat.id}
+                    to={`/chat/${chat.id}`}
+                    className="flex items-center p-2 rounded-md hover:bg-sidebar-accent group"
+                  >
+                    <MessageSquare size={18} className="flex-shrink-0" />
+                    {!collapsed && (
+                      <div className="ml-2 overflow-hidden">
+                        <p className="truncate text-sm">{chat.title}</p>
+                        <p className="text-xs opacity-70">
+                          {chat.timestamp.toLocaleDateString()}
+                        </p>
+                      </div>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
 
       {/* Settings link - Only for admins */}
       {isAdmin && (

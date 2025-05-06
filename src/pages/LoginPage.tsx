@@ -1,12 +1,13 @@
 
 import { useState, FormEvent } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { Separator } from '@/components/ui/separator';
 
 export default function LoginPage() {
   const { login, user, setCustomerRole, isLoading } = useAuth();
@@ -107,6 +108,17 @@ export default function LoginPage() {
                   Use Admin Account
                 </Button>
               </div>
+            </div>
+            
+            <Separator className="my-4" />
+            
+            <div className="text-center">
+              <p className="text-sm">
+                Don't have an account?{" "}
+                <Link to="/signup" className="text-primary hover:underline">
+                  Sign up
+                </Link>
+              </p>
             </div>
           </CardContent>
           <CardFooter>

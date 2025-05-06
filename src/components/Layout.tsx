@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { User } from "lucide-react";
 import { Button } from "./ui/button";
+import { ScrollArea } from "./ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 interface LayoutProps {
@@ -86,8 +87,12 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-hidden">{children}</main>
+        {/* Page content with ScrollArea */}
+        <main className="flex-1 overflow-hidden">
+          <ScrollArea className="h-full w-full">
+            {children}
+          </ScrollArea>
+        </main>
       </div>
     </div>
   );
