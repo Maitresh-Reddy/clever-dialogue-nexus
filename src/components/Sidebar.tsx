@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   MessageSquare,
@@ -15,11 +15,11 @@ import { cn } from "@/lib/utils";
 export default function Sidebar() {
   const { user, logout, isEmployee, isAdmin } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
-  const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
-    navigate("/");
+    // Instead of using navigate, we use a regular function that doesn't depend on Router
+    window.location.href = "/";
   };
 
   // Mock chat history for demo
