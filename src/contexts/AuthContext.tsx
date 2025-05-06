@@ -1,11 +1,12 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Get Supabase credentials with appropriate fallback to prevent the "supabaseUrl is required" error
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder-url.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
 
+// Create Supabase client with proper error handling
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export type UserRole = 'customer' | 'employee' | 'admin';
@@ -154,6 +155,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     
     try {
+      // Check if Supabase is properly configured before attempting auth
+      if (supabaseUrl === 'https://placeholder-url.supabase.co') {
+        console.warn('Using mock authentication as Supabase is not properly configured');
+        // Fallback to mock users for demo
+        const matchedUser = mockUsers.find(
+          (u) => u.email === email && u.password === password
+        );
+
+        if (matchedUser) {
+          const { password: _, ...userWithoutPassword } = matchedUser;
+          setUser(userWithoutPassword);
+          localStorage.setItem('botllm-user', JSON.stringify(userWithoutPassword));
+          toast.success(`Welcome back, ${userWithoutPassword.name}!`);
+          return true;
+        } else {
+          toast.error('Invalid email or password');
+          return false;
+        }
+      }
+      
       // Try Supabase auth
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -185,6 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       return false;
     } catch (error) {
+      console.error('Login error:', error);
       toast.error('Login failed. Please try again.');
       return false;
     } finally {
