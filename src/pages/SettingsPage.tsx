@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/Layout";
@@ -16,9 +15,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { createClient } from "@supabase/supabase-js";
 
-// Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Supabase client - with proper fallback values to prevent initialization errors
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder-url.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default function SettingsPage() {
@@ -82,6 +81,12 @@ export default function SettingsPage() {
 
   const handleSaveApiKeys = async () => {
     try {
+      // Check if Supabase is properly configured before attempting to save data
+      if (supabaseUrl === 'https://placeholder-url.supabase.co') {
+        toast.warning('Supabase is not properly configured. API keys cannot be saved remotely.');
+        return;
+      }
+      
       // Store API keys in Supabase
       const { error } = await supabase
         .from('api_keys')
@@ -118,6 +123,12 @@ export default function SettingsPage() {
 
   const handleSaveAccess = async () => {
     try {
+      // Check if Supabase is properly configured
+      if (supabaseUrl === 'https://placeholder-url.supabase.co') {
+        toast.warning('Supabase is not properly configured. Access settings cannot be saved remotely.');
+        return;
+      }
+      
       // Save access control settings to Supabase
       const { error } = await supabase
         .from('access_control')
@@ -149,6 +160,12 @@ export default function SettingsPage() {
       return;
     }
     
+    // Check if Supabase is properly configured
+    if (supabaseUrl === 'https://placeholder-url.supabase.co') {
+      toast.warning('Supabase is not properly configured. Training data cannot be uploaded.');
+      return;
+    }
+    
     setIsTraining(true);
     
     try {
@@ -173,6 +190,12 @@ export default function SettingsPage() {
   const handleTrainModel = async () => {
     if (!trainingData) {
       toast.error('Please enter training data');
+      return;
+    }
+    
+    // Check if Supabase is properly configured
+    if (supabaseUrl === 'https://placeholder-url.supabase.co') {
+      toast.warning('Supabase is not properly configured. Training cannot be started.');
       return;
     }
     
