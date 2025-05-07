@@ -1,6 +1,7 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
-import { createClient } from '@supabase/supabase-js';
+import { createClient, User as SupabaseUser } from '@supabase/supabase-js';
 
 // Get Supabase credentials with appropriate fallback to prevent the "supabaseUrl is required" error
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder-url.supabase.co';
@@ -32,7 +33,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock users for demo purposes - will be replaced by Supabase
+// Mock users for demo purposes - will be used as fallback when Supabase is not configured
 const mockUsers = [
   {
     id: '1',
@@ -60,11 +61,29 @@ const isAllowedDomain = (email: string) => {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const isUsingMockData = supabaseUrl === 'https://placeholder-url.supabase.co';
 
   useEffect(() => {
     // Check for current Supabase session
     const checkSession = async () => {
       try {
+        if (isUsingMockData) {
+          console.warn('Using mock authentication as Supabase is not properly configured');
+          // Try to load from localStorage for demo
+          const savedUser = localStorage.getItem('botllm-user');
+          if (savedUser) {
+            try {
+              const parsedUser = JSON.parse(savedUser);
+              setUser(parsedUser);
+            } catch (error) {
+              localStorage.removeItem('botllm-user');
+            }
+          }
+          setIsLoading(false);
+          return;
+        }
+
+        // Real Supabase auth
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -73,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         
         if (data?.session?.user) {
-          // Get user role from user_roles table
+          // Get user role from user_profiles table
           const { data: userData, error: userError } = await supabase
             .from('user_profiles')
             .select('id, name, role')
@@ -114,49 +133,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     checkSession();
     
-    // Set up auth state change listener
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          // Get user role from user_roles table
-          const { data: userData, error: userError } = await supabase
-            .from('user_profiles')
-            .select('id, name, role')
-            .eq('id', session.user.id)
-            .single();
-            
-          if (!userError && userData) {
-            setUser({
-              id: userData.id,
-              email: session.user.email || '',
-              name: userData.name,
-              role: userData.role as UserRole
-            });
-            localStorage.setItem('botllm-user', JSON.stringify({
-              id: userData.id,
-              email: session.user.email || '',
-              name: userData.name,
-              role: userData.role
-            }));
+    // Set up auth state change listener (only when not using mock data)
+    if (!isUsingMockData) {
+      const { data: authListener } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          if (event === 'SIGNED_IN' && session?.user) {
+            // Get user role from user_profiles table
+            const { data: userData, error: userError } = await supabase
+              .from('user_profiles')
+              .select('id, name, role')
+              .eq('id', session.user.id)
+              .single();
+              
+            if (!userError && userData) {
+              setUser({
+                id: userData.id,
+                email: session.user.email || '',
+                name: userData.name,
+                role: userData.role as UserRole
+              });
+            }
+          } else if (event === 'SIGNED_OUT') {
+            setUser(null);
+            localStorage.removeItem('botllm-user');
           }
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          localStorage.removeItem('botllm-user');
         }
-      }
-    );
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
+      );
+      
+      return () => {
+        authListener.subscription.unsubscribe();
+      };
+    }
+  }, [isUsingMockData]);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
     try {
-      // Check if Supabase is properly configured before attempting auth
-      if (supabaseUrl === 'https://placeholder-url.supabase.co') {
+      // Check if using mock data
+      if (isUsingMockData) {
         console.warn('Using mock authentication as Supabase is not properly configured');
         // Fallback to mock users for demo
         const matchedUser = mockUsers.find(
@@ -182,21 +197,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       
       if (error) {
-        // Fallback to mock users for demo
-        const matchedUser = mockUsers.find(
-          (u) => u.email === email && u.password === password
-        );
-
-        if (matchedUser) {
-          const { password: _, ...userWithoutPassword } = matchedUser;
-          setUser(userWithoutPassword);
-          localStorage.setItem('botllm-user', JSON.stringify(userWithoutPassword));
-          toast.success(`Welcome back, ${userWithoutPassword.name}!`);
-          return true;
-        } else {
-          toast.error('Invalid email or password');
-          return false;
-        }
+        toast.error(error.message);
+        return false;
       }
       
       if (data.user) {
@@ -224,9 +226,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     
     try {
+      // Check if using mock data
+      if (isUsingMockData) {
+        toast.warning('Supabase is not properly configured. Your account will not be permanently saved.');
+        
+        // Create a mock user for demo purposes
+        const newMockUser = {
+          id: `mock-${Date.now()}`,
+          email,
+          name,
+          role: 'employee' as UserRole
+        };
+        
+        setUser(newMockUser);
+        localStorage.setItem('botllm-user', JSON.stringify(newMockUser));
+        toast.success('Registration successful! You are now logged in.');
+        return true;
+      }
+      
+      // Use Supabase auth
       const { data, error } = await supabase.auth.signUp({
         email,
-        password
+        password,
+        options: {
+          data: {
+            name
+          }
+        }
       });
       
       if (error) {
@@ -251,7 +277,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return false;
         }
         
-        toast.success('Registration successful! Please sign in.');
+        toast.success('Registration successful! Please verify your email.');
         return true;
       }
       
@@ -265,7 +291,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    if (!isUsingMockData) {
+      await supabase.auth.signOut();
+    }
     setUser(null);
     localStorage.removeItem('botllm-user');
     toast.info('You have been logged out');
