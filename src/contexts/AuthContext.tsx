@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from "sonner";
 import { createClient, User as SupabaseUser } from '@supabase/supabase-js';
+import { ALLOWED_EMPLOYEE_DOMAINS, isAdminDomain } from '@/lib/constants';
 
 // Get Supabase credentials with appropriate fallback to prevent the "supabaseUrl is required" error
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder-url.supabase.co';
@@ -51,13 +52,6 @@ const mockUsers = [
   }
 ];
 
-// Helper to check if email domain is allowed for employees
-const isAllowedDomain = (email: string) => {
-  const allowedDomains = ['botllm.com', 'company.com']; // Add your allowed domains
-  const domain = email.split('@')[1];
-  return allowedDomains.includes(domain);
-};
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -88,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (error) {
           console.error('Error getting session:', error);
+          setIsLoading(false);
           return;
         }
         
@@ -101,6 +96,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             
           if (userError) {
             console.error('Error getting user data:', userError);
+            
+            // Handle case where user exists in auth but not in profiles (e.g., invitation)
+            if (userError.code === 'PGRST116') {
+              // Create user profile for invited user
+              const email = data.session.user.email || '';
+              const name = data.session.user.user_metadata?.full_name || email.split('@')[0];
+              
+              const role: UserRole = isAdminDomain(email) ? 'admin' : 'employee';
+              
+              const { error: insertError } = await supabase
+                .from('user_profiles')
+                .insert([
+                  {
+                    id: data.session.user.id,
+                    name,
+                    role
+                  }
+                ]);
+                
+              if (insertError) {
+                console.error('Error creating profile for invited user:', insertError);
+              } else {
+                setUser({
+                  id: data.session.user.id,
+                  email,
+                  name,
+                  role
+                });
+              }
+            }
+            
+            setIsLoading(false);
             return;
           }
           
@@ -137,6 +164,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!isUsingMockData) {
       const { data: authListener } = supabase.auth.onAuthStateChange(
         async (event, session) => {
+          console.log('Auth state change:', event);
+          
           if (event === 'SIGNED_IN' && session?.user) {
             // Get user role from user_profiles table
             const { data: userData, error: userError } = await supabase
@@ -152,6 +181,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 name: userData.name,
                 role: userData.role as UserRole
               });
+            } else if (userError && userError.code === 'PGRST116') {
+              // Handle invited users or users without profiles
+              console.log('Creating profile for user without one');
+              
+              const email = session.user.email || '';
+              const name = session.user.user_metadata?.full_name || email.split('@')[0];
+              
+              const role: UserRole = isAdminDomain(email) ? 'admin' : 'employee';
+              
+              const { error: insertError } = await supabase
+                .from('user_profiles')
+                .insert([
+                  {
+                    id: session.user.id,
+                    name,
+                    role
+                  }
+                ]);
+                
+              if (insertError) {
+                console.error('Error creating profile for user:', insertError);
+              } else {
+                setUser({
+                  id: session.user.id,
+                  email,
+                  name,
+                  role
+                });
+              }
             }
           } else if (event === 'SIGNED_OUT') {
             setUser(null);
@@ -218,8 +276,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUp = async (email: string, password: string, name: string): Promise<boolean> => {
     // Check if email domain is allowed for employee signup
-    if (!isAllowedDomain(email)) {
-      toast.error('Only company email domains are allowed for employee registration');
+    if (!ALLOWED_EMPLOYEE_DOMAINS.includes(email.split('@')[1])) {
+      toast.error(`Only these email domains are allowed for employee registration: ${ALLOWED_EMPLOYEE_DOMAINS.join(', ')}`);
       return false;
     }
     
@@ -238,6 +296,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           role: 'employee' as UserRole
         };
         
+        if (email.includes('@botllm.com')) {
+          newMockUser.role = 'admin';
+        }
+        
         setUser(newMockUser);
         localStorage.setItem('botllm-user', JSON.stringify(newMockUser));
         toast.success('Registration successful! You are now logged in.');
@@ -250,7 +312,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
         options: {
           data: {
-            name
+            name,
+            full_name: name
           }
         }
       });
@@ -261,23 +324,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       if (data.user) {
-        // Create user profile with 'employee' role
-        const { error: profileError } = await supabase
-          .from('user_profiles')
-          .insert([
-            {
-              id: data.user.id,
-              name,
-              role: 'employee'
-            }
-          ]);
-        
-        if (profileError) {
-          toast.error('Error creating user profile');
-          return false;
+        // The user profile will be automatically created by the database trigger
+        // When using email confirmation, we should inform the user
+        if (data.session === null) {
+          toast.success('Registration successful! Please check your email to confirm your account.');
+        } else {
+          toast.success('Registration successful! You are now logged in.');
         }
         
-        toast.success('Registration successful! Please verify your email.');
         return true;
       }
       

@@ -54,6 +54,11 @@ CREATE POLICY "Users can update their own chat history"
   FOR UPDATE
   USING (auth.uid() = user_id);
 
+CREATE POLICY "Users can delete their own chat history"
+  ON public.chat_history
+  FOR DELETE
+  USING (auth.uid() = user_id);
+
 -- Chat Messages policies
 CREATE POLICY "Users can view messages from their chats"
   ON public.chat_messages
@@ -74,3 +79,43 @@ CREATE POLICY "Users can insert messages to their chats"
       WHERE user_id = auth.uid()
     )
   );
+
+-- Create trigger function to handle user creation from auth
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.user_profiles (id, name, role)
+  VALUES (
+    NEW.id, 
+    COALESCE(NEW.raw_user_meta_data->>'name', NEW.email), 
+    CASE 
+      WHEN NEW.email LIKE '%@botllm.com' THEN 'admin'
+      ELSE 'employee'
+    END
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger for new user creation
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE PROCEDURE public.handle_new_user();
+
+-- Ensure emails with admin domain get admin role
+CREATE OR REPLACE FUNCTION public.set_admin_for_domain()
+RETURNS trigger AS $$
+BEGIN
+  IF NEW.email LIKE '%@botllm.com' AND NEW.role != 'admin' THEN
+    NEW.role := 'admin';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger for role updates
+DROP TRIGGER IF EXISTS ensure_admin_role ON public.user_profiles;
+CREATE TRIGGER ensure_admin_role
+  BEFORE UPDATE ON public.user_profiles
+  FOR EACH ROW EXECUTE PROCEDURE public.set_admin_for_domain();

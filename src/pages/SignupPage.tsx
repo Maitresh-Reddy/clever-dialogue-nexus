@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useAuth } from '@/contexts/AuthContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Info } from 'lucide-react';
 
 export default function SignupPage() {
   const { signUp, user, isLoading } = useAuth();
@@ -44,6 +44,15 @@ export default function SignupPage() {
       return;
     }
     
+    // Check domain restrictions
+    const domain = email.split('@')[1];
+    const allowedDomains = ['botllm.com', 'company.com'];
+    
+    if (!allowedDomains.includes(domain)) {
+      setError(`Email domain not authorized. Please use an email from: ${allowedDomains.join(', ')}`);
+      return;
+    }
+    
     if (!name.trim()) {
       setError('Name is required');
       return;
@@ -61,14 +70,20 @@ export default function SignupPage() {
         <ThemeToggle />
       </div>
       
+      <div className="absolute top-4 left-4">
+        <Link to="/" className="flex items-center gap-2">
+          <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center">
+            <span className="text-primary-foreground font-bold">B</span>
+          </div>
+          <span className="font-bold">BotLLM</span>
+        </Link>
+      </div>
+      
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground text-2xl font-bold">B</span>
-          </div>
-          <h1 className="mt-4 text-3xl font-extrabold">BotLLM</h1>
+          <h1 className="text-3xl font-extrabold">Create Account</h1>
           <p className="mt-2 text-muted-foreground">
-            Create an employee account
+            Join as an employee of BotLLM
           </p>
         </div>
 
@@ -89,6 +104,13 @@ export default function SignupPage() {
               </Alert>
             )}
             
+            <Alert variant="default" className="mb-4 bg-muted/50 border-muted">
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                Employee accounts require an email from botllm.com or company.com
+              </AlertDescription>
+            </Alert>
+            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
@@ -106,13 +128,13 @@ export default function SignupPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@company.com"
+                  placeholder="you@botllm.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Must use an authorized company email domain
+                  Must use an authorized company email domain (botllm.com, company.com)
                 </p>
               </div>
               
