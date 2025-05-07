@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -183,7 +182,7 @@ export default function HomePage() {
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                   <circle cx="9" cy="7" r="4" />
-                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M22 21v-2a4 4 0 0 1 0 7.75" />
                   <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg>
               </div>
@@ -261,7 +260,9 @@ export default function HomePage() {
               <p className="text-muted-foreground mb-4">
                 Complete solution for large businesses with dedicated support and custom integrations.
               </p>
-              <Button variant="outline" as={Link} to="/products/enterprise">Learn More</Button>
+              <Link to="/products/enterprise">
+                <Button variant="outline">Learn More</Button>
+              </Link>
             </div>
             <div className="bg-background p-6 rounded-lg shadow-sm">
               <div className="h-48 mb-6 overflow-hidden rounded-lg">
@@ -275,7 +276,9 @@ export default function HomePage() {
               <p className="text-muted-foreground mb-4">
                 Perfect for small to medium businesses looking for an AI-powered customer service solution.
               </p>
-              <Button variant="outline" as={Link} to="/products/teams">Learn More</Button>
+              <Link to="/products/teams">
+                <Button variant="outline">Learn More</Button>
+              </Link>
             </div>
           </div>
         </div>
