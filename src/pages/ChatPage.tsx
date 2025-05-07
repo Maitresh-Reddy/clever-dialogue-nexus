@@ -23,6 +23,8 @@ export default function ChatPage() {
     if (!id && !isUsingMockData && user && user.role !== 'customer') {
       const createNewChat = async () => {
         try {
+          console.log("Creating new chat for user:", user.id);
+          
           const { data, error } = await supabase
             .from('chat_history')
             .insert([
@@ -35,10 +37,12 @@ export default function ChatPage() {
             .select();
             
           if (error) {
+            console.error('Failed to create new chat:', error);
             toast.error('Failed to create new chat');
-            console.error(error);
             return;
           }
+          
+          console.log("Chat created successfully:", data);
           
           if (data && data.length > 0) {
             navigate(`/chat/${data[0].id}`);

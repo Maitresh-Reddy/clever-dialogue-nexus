@@ -14,8 +14,16 @@ import ChatPage from "./pages/ChatPage";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
-// Create a stable QueryClient instance
-const queryClient = new QueryClient();
+// Create a stable QueryClient instance outside of component
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 // Protected route component
 function ProtectedRoute({ children }: { children: JSX.Element }) {
@@ -87,29 +95,40 @@ function AppRoutes() {
             </AdminRoute>
           } 
         />
+        {/* Add routes for pages in footer */}
+        <Route path="/products/:id" element={<NotFound />} />
+        <Route path="/pricing" element={<NotFound />} />
+        <Route path="/resources/:id" element={<NotFound />} />
+        <Route path="/company/:id" element={<NotFound />} />
+        <Route path="/legal/:id" element={<NotFound />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );
 }
 
-// Main App component with providers in correct order
+// Main App component with providers in correct order - Remove React.StrictMode wrapping here
 function App() {
   return (
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <TooltipProvider>
-            <AuthProvider>
-              <AppRoutes />
-              <Toaster />
-              <Sonner />
-            </AuthProvider>
-          </TooltipProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <TooltipProvider>
+          <AuthProvider>
+            <AppRoutes />
+            <Toaster />
+            <Sonner />
+          </AuthProvider>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
 
-export default App;
+// Wrap the App in StrictMode at export time
+export default function AppWithStrictMode() {
+  return (
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+}

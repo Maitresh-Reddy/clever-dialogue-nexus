@@ -80,6 +80,16 @@ CREATE POLICY "Users can insert messages to their chats"
     )
   );
 
+CREATE POLICY "Users can delete messages from their chats"
+  ON public.chat_messages
+  FOR DELETE
+  USING (
+    chat_id IN (
+      SELECT id FROM public.chat_history
+      WHERE user_id = auth.uid()
+    )
+  );
+
 -- Create trigger function to handle user creation from auth
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
@@ -119,3 +129,33 @@ DROP TRIGGER IF EXISTS ensure_admin_role ON public.user_profiles;
 CREATE TRIGGER ensure_admin_role
   BEFORE UPDATE ON public.user_profiles
   FOR EACH ROW EXECUTE PROCEDURE public.set_admin_for_domain();
+
+-- Handle invited users function
+CREATE OR REPLACE FUNCTION public.handle_invited_user_signin()
+RETURNS trigger AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.user_profiles WHERE id = NEW.id
+  ) THEN
+    INSERT INTO public.user_profiles (id, name, role)
+    VALUES (
+      NEW.id, 
+      COALESCE(NEW.raw_user_meta_data->>'name', NEW.email),
+      CASE 
+        WHEN NEW.email LIKE '%@botllm.com' THEN 'admin'
+        WHEN NEW.email LIKE '%@company.com' THEN 'employee'
+        ELSE 'employee'
+      END
+    );
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger for invited users
+DROP TRIGGER IF EXISTS on_auth_user_signed_in ON auth.users;
+CREATE TRIGGER on_auth_user_signed_in
+  AFTER UPDATE OF last_sign_in_at ON auth.users
+  FOR EACH ROW
+  WHEN (OLD.last_sign_in_at IS NULL OR NEW.last_sign_in_at > OLD.last_sign_in_at)
+  EXECUTE PROCEDURE public.handle_invited_user_signin();

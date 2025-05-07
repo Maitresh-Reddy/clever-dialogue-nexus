@@ -39,6 +39,7 @@ import {
 // Get Supabase credentials with appropriate fallback
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder-url.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
+// Create a single instance of the supabase client to avoid warnings
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Define chat history type
@@ -141,6 +142,8 @@ export default function Sidebar() {
       }
       
       if (data && data.length > 0) {
+        // Refresh the chat history to show the new chat
+        fetchChatHistory();
         // Navigate to the new chat
         navigate(`/chat/${data[0].id}`);
       }
@@ -169,7 +172,19 @@ export default function Sidebar() {
     }
     
     try {
-      // Delete chat from Supabase
+      // First delete all messages associated with this chat
+      const { error: messagesError } = await supabase
+        .from('chat_messages')
+        .delete()
+        .eq('chat_id', chatToDelete);
+        
+      if (messagesError) {
+        console.error('Error deleting chat messages:', messagesError);
+        toast.error('Failed to delete chat messages');
+        return;
+      }
+      
+      // Then delete the chat itself
       const { error } = await supabase
         .from('chat_history')
         .delete()
