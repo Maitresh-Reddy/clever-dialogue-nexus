@@ -29,10 +29,24 @@ export default function HomePage() {
             </nav>
             <div className="flex items-center gap-2">
               <Link to="/login">
-                <Button variant="outline">Login</Button>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <img 
+                    src="https://images.unsplash.com/photo-1517841905240-472988babdf9?w=48&h=48&fit=crop&crop=faces" 
+                    alt="Login" 
+                    className="w-4 h-4 rounded-full object-cover" 
+                  />
+                  Login
+                </Button>
               </Link>
               <Link to="/signup">
-                <Button>Sign Up</Button>
+                <Button className="flex items-center gap-2">
+                  <img 
+                    src="https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=48&h=48&fit=crop&crop=faces" 
+                    alt="Sign Up" 
+                    className="w-4 h-4 rounded-full object-cover" 
+                  />
+                  Sign Up
+                </Button>
               </Link>
               <ThemeToggle />
             </div>
@@ -51,10 +65,24 @@ export default function HomePage() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link to="/login">
-            <Button size="lg" className="px-8">Employee Login</Button>
+            <Button size="lg" className="px-8 flex items-center gap-2">
+              <img 
+                src="https://images.unsplash.com/photo-1560250097-0b93528c311a?w=48&h=48&fit=crop&crop=faces" 
+                alt="Employee" 
+                className="w-6 h-6 rounded-full object-cover" 
+              />
+              Employee Login
+            </Button>
           </Link>
           <Link to="/login" state={{ isCustomer: true }}>
-            <Button size="lg" variant="outline" className="px-8">Customer Access</Button>
+            <Button size="lg" variant="outline" className="px-8 flex items-center gap-2">
+              <img 
+                src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=48&h=48&fit=crop&crop=faces" 
+                alt="Customer" 
+                className="w-6 h-6 rounded-full object-cover" 
+              />
+              Customer Access
+            </Button>
           </Link>
         </div>
       </section>
@@ -65,6 +93,13 @@ export default function HomePage() {
           <h2 className="text-3xl font-bold text-center mb-12">Key Features</h2>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="bg-background p-6 rounded-lg shadow-sm">
+              <div className="h-48 mb-6 overflow-hidden rounded-lg">
+                <img 
+                  src="https://images.unsplash.com/photo-1573164713988-8665fc963095?w=600&h=400&fit=crop" 
+                  alt="Smart Customer Support" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
               <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
                   <rect width="20" height="14" x="2" y="3" rx="2" />
@@ -78,6 +113,13 @@ export default function HomePage() {
               </p>
             </div>
             <div className="bg-background p-6 rounded-lg shadow-sm">
+              <div className="h-48 mb-6 overflow-hidden rounded-lg">
+                <img 
+                  src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=600&h=400&fit=crop" 
+                  alt="Employee Assistance" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
               <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -92,6 +134,13 @@ export default function HomePage() {
               </p>
             </div>
             <div className="bg-background p-6 rounded-lg shadow-sm">
+              <div className="h-48 mb-6 overflow-hidden rounded-lg">
+                <img 
+                  src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=600&h=400&fit=crop" 
+                  alt="Conversation History" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
               <div className="h-12 w-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
                   <path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34" />
@@ -123,8 +172,14 @@ export default function HomePage() {
                 Founded in 2025, we've helped hundreds of businesses improve their customer satisfaction scores and internal knowledge sharing.
               </p>
             </div>
-            <div className="flex-1 bg-muted aspect-video rounded-lg flex items-center justify-center">
-              <span className="text-4xl font-bold text-muted-foreground">Company Video</span>
+            <div className="flex-1">
+              <div className="aspect-video rounded-lg overflow-hidden">
+                <img 
+                  src="https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&h=450&fit=crop" 
+                  alt="Team working with AI technology" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -136,6 +191,13 @@ export default function HomePage() {
           <h2 className="text-3xl font-bold text-center mb-12">Our Products</h2>
           <div className="grid md:grid-cols-2 gap-8">
             <div className="bg-background p-6 rounded-lg shadow-sm">
+              <div className="h-48 mb-6 overflow-hidden rounded-lg">
+                <img 
+                  src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=400&fit=crop" 
+                  alt="BotLLM Enterprise" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
               <h3 className="text-xl font-semibold mb-4">BotLLM Enterprise</h3>
               <p className="text-muted-foreground mb-4">
                 Complete solution for large businesses with dedicated support and custom integrations.
@@ -145,6 +207,13 @@ export default function HomePage() {
               </Link>
             </div>
             <div className="bg-background p-6 rounded-lg shadow-sm">
+              <div className="h-48 mb-6 overflow-hidden rounded-lg">
+                <img 
+                  src="https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=600&h=400&fit=crop" 
+                  alt="BotLLM Teams" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
               <h3 className="text-xl font-semibold mb-4">BotLLM Teams</h3>
               <p className="text-muted-foreground mb-4">
                 Perfect for small to medium businesses looking for an AI-powered customer service solution.

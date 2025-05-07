@@ -1,4 +1,5 @@
 
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +14,7 @@ import ChatPage from "./pages/ChatPage";
 import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
+// Create a stable QueryClient instance
 const queryClient = new QueryClient();
 
 // Protected route component
@@ -53,7 +55,7 @@ function AdminRoute({ children }: { children: JSX.Element }) {
   return children;
 }
 
-// App with routes
+// App routes defined outside of component to avoid recreating on every render
 function AppRoutes() {
   return (
     <BrowserRouter>
@@ -91,18 +93,23 @@ function AppRoutes() {
   );
 }
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <TooltipProvider>
-        <AuthProvider>
-          <AppRoutes />
-          <Toaster />
-          <Sonner />
-        </AuthProvider>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+// Main App component with providers in correct order
+function App() {
+  return (
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <TooltipProvider>
+            <AuthProvider>
+              <AppRoutes />
+              <Toaster />
+              <Sonner />
+            </AuthProvider>
+          </TooltipProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </React.StrictMode>
+  );
+}
 
 export default App;
