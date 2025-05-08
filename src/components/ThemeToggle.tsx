@@ -12,9 +12,10 @@ import {
 import { useEffect, useState } from "react";
 
 export function ThemeToggle() {
-  const { setTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
+  // Only render theme toggle client-side
   useEffect(() => {
     setMounted(true);
   }, []);
