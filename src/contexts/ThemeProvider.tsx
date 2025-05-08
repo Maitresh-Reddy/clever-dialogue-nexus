@@ -4,7 +4,7 @@
 import * as React from "react"
 import { ThemeProvider as NextThemesProvider } from "next-themes"
 
-// Define the proper type for attribute
+// Using a direct type rather than importing from next-themes to avoid dependency issues
 type Attribute = string;
 
 interface ThemeProviderProps {
