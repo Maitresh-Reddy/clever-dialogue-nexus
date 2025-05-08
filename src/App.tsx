@@ -15,9 +15,14 @@ import PricingPage from "@/pages/PricingPage";
 import ProductEnterprisePage from "@/pages/products/ProductEnterprisePage";
 import ProductTeamsPage from "@/pages/products/ProductTeamsPage";
 import ContactPage from "@/pages/company/ContactPage";
+import AboutPage from "@/pages/company/AboutPage";
+import CareersPage from "@/pages/company/CareersPage";
 import PrivacyPolicyPage from "@/pages/legal/PrivacyPolicyPage";
 import TermsOfServicePage from "@/pages/legal/TermsOfServicePage";
 import CookiePolicyPage from "@/pages/legal/CookiePolicyPage";
+import DocumentationPage from "@/pages/resources/DocumentationPage";
+import TutorialsPage from "@/pages/resources/TutorialsPage";
+import BlogPage from "@/pages/resources/BlogPage";
 
 // Create a client
 const queryClient = new QueryClient();
@@ -43,6 +48,13 @@ function App() {
               
               {/* Company */}
               <Route path="/company/contact" element={<ContactPage />} />
+              <Route path="/company/about" element={<AboutPage />} />
+              <Route path="/company/careers" element={<CareersPage />} />
+              
+              {/* Resources */}
+              <Route path="/resources/documentation" element={<DocumentationPage />} />
+              <Route path="/resources/tutorials" element={<TutorialsPage />} />
+              <Route path="/resources/blog" element={<BlogPage />} />
               
               {/* Legal */}
               <Route path="/legal/privacy" element={<PrivacyPolicyPage />} />
