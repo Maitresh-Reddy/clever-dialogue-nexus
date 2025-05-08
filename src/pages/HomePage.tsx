@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -128,7 +129,7 @@ export default function HomePage() {
           </Link>
         </div>
         
-        {/* Demo video */}
+        {/* Demo image instead of video */}
         <div className="mt-16 max-w-4xl mx-auto">
           <div className="aspect-video rounded-lg overflow-hidden border shadow-lg">
             <img 
@@ -136,11 +137,6 @@ export default function HomePage() {
               alt="BotLLM Demo" 
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Button size="lg" variant="outline" className="bg-background/80 backdrop-blur-sm">
-                Watch Demo
-              </Button>
-            </div>
           </div>
         </div>
       </section>

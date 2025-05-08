@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   MessageSquare,
@@ -55,8 +55,10 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeletingChat, setIsDeletingChat] = useState(false);
   const isUsingMockData = supabaseUrl === 'https://placeholder-url.supabase.co';
   const navigate = useNavigate();
+  const location = useLocation();
   
   // For delete confirmation
   const [chatToDelete, setChatToDelete] = useState<string | null>(null);
@@ -65,7 +67,7 @@ export default function Sidebar() {
   // Fetch chat history from Supabase
   useEffect(() => {
     fetchChatHistory();
-  }, [user]);
+  }, [user, location.pathname]);
 
   const fetchChatHistory = async () => {
     if (!user || user.role === 'customer') return;
@@ -153,25 +155,30 @@ export default function Sidebar() {
     }
   };
 
-  const openDeleteDialog = (chatId: string) => {
+  const openDeleteDialog = (chatId: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setChatToDelete(chatId);
     setDeleteDialogOpen(true);
   };
 
   const handleDeleteChat = async () => {
-    if (!chatToDelete) return;
+    if (!chatToDelete || isDeletingChat) return;
     
-    // For mock data, just remove from local state
-    if (isUsingMockData) {
-      setChatHistory((prev) => prev.filter(chat => chat.id !== chatToDelete));
-      toast.success('Chat deleted successfully');
-      navigate('/chat');
-      setDeleteDialogOpen(false);
-      setChatToDelete(null);
-      return;
-    }
+    setIsDeletingChat(true);
     
     try {
+      // For mock data, just remove from local state
+      if (isUsingMockData) {
+        setChatHistory((prev) => prev.filter(chat => chat.id !== chatToDelete));
+        toast.success('Chat deleted successfully');
+        navigate('/chat');
+        setDeleteDialogOpen(false);
+        setChatToDelete(null);
+        setIsDeletingChat(false);
+        return;
+      }
+      
       // First delete all messages associated with this chat
       const { error: messagesError } = await supabase
         .from('chat_messages')
@@ -181,6 +188,7 @@ export default function Sidebar() {
       if (messagesError) {
         console.error('Error deleting chat messages:', messagesError);
         toast.error('Failed to delete chat messages');
+        setIsDeletingChat(false);
         return;
       }
       
@@ -193,22 +201,27 @@ export default function Sidebar() {
       if (error) {
         console.error('Error deleting chat:', error);
         toast.error('Failed to delete chat');
+        setIsDeletingChat(false);
         return;
       }
       
       toast.success('Chat deleted successfully');
       
-      // Refresh chat history
-      fetchChatHistory();
+      // Update local state to remove the deleted chat
+      setChatHistory(prevChats => prevChats.filter(chat => chat.id !== chatToDelete));
       
       // Navigate to main chat page if deleted chat was active
-      navigate('/chat');
+      const currentChatId = location.pathname.split('/').pop();
+      if (currentChatId === chatToDelete) {
+        navigate('/chat');
+      }
     } catch (error) {
       console.error('Error in delete chat:', error);
       toast.error('Something went wrong');
     } finally {
       setDeleteDialogOpen(false);
       setChatToDelete(null);
+      setIsDeletingChat(false);
     }
   };
 
@@ -291,27 +304,15 @@ export default function Sidebar() {
                           )}
                         </Link>
                         {!collapsed && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 opacity-0 group-hover:opacity-100"
-                              >
-                                <MoreVertical size={16} />
-                                <span className="sr-only">Actions</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem 
-                                className="text-destructive focus:text-destructive"
-                                onClick={() => openDeleteDialog(chat.id)}
-                              >
-                                <Trash2 size={16} className="mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                            onClick={(e) => openDeleteDialog(chat.id, e)}
+                          >
+                            <Trash2 size={16} />
+                            <span className="sr-only">Delete</span>
+                          </Button>
                         )}
                       </div>
                     ))
@@ -350,14 +351,14 @@ export default function Sidebar() {
             <div className="flex flex-col space-y-2">
               <div className="flex items-center">
                 <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center">
-                  <span>{user?.name.charAt(0)}</span>
+                  <span>{user?.name?.charAt(0) || 'U'}</span>
                 </div>
                 <div className="ml-2">
                   <p className="text-sm font-medium truncate">
-                    {user?.name}
+                    {user?.name || 'User'}
                   </p>
                   <p className="text-xs capitalize opacity-70">
-                    {user?.role}
+                    {user?.role || 'user'}
                   </p>
                 </div>
               </div>
@@ -369,7 +370,7 @@ export default function Sidebar() {
           ) : (
             <div className="flex flex-col items-center space-y-4">
               <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center">
-                <span>{user?.name.charAt(0)}</span>
+                <span>{user?.name?.charAt(0) || 'U'}</span>
               </div>
               <Button variant="ghost" size="icon" onClick={handleLogout}>
                 <LogOut size={18} />
@@ -389,9 +390,18 @@ export default function Sidebar() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteChat} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
+            <AlertDialogCancel disabled={isDeletingChat}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteChat}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeletingChat}
+            >
+              {isDeletingChat ? (
+                <>
+                  <span className="mr-2">Deleting</span>
+                  <div className="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin"></div>
+                </>
+              ) : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
