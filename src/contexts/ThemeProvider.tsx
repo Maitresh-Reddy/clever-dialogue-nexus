@@ -4,6 +4,9 @@
 import * as React from "react"
 import { ThemeProvider as NextThemesProvider } from "next-themes"
 
+// Define the proper type for attribute
+type Attribute = string;
+
 interface ThemeProviderProps {
   children: React.ReactNode;
   defaultTheme?: string;
@@ -12,7 +15,7 @@ interface ThemeProviderProps {
   enableColorScheme?: boolean;
   disableTransitionOnChange?: boolean;
   forcedTheme?: string;
-  attribute?: string;
+  attribute?: Attribute | Attribute[];
 }
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
