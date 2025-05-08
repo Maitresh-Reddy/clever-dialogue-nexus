@@ -1,5 +1,5 @@
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, FormEvent, KeyboardEvent } from "react";
 import { useParams } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
 import { useAuth } from "@/contexts/AuthContext";
@@ -226,6 +226,15 @@ export default function ChatInterface() {
       setIsLoading(false);
     }
   };
+
+  // Handle key press events for textarea
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    // Submit form when Enter is pressed without Shift key
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault(); // Prevent default to avoid new line
+      handleSubmit(e as unknown as FormEvent);
+    }
+  };
   
   // Generate mock response for demo purposes
   const generateMockResponse = (userInput: string): string => {
@@ -320,6 +329,7 @@ export default function ChatInterface() {
             placeholder="Type your message..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
             className="resize-none min-h-[80px]"
             disabled={isLoading}
           />
