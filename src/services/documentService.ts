@@ -1,37 +1,54 @@
 
-// This service would handle document processing and question answering
-// In a real app, this would connect to a backend AI service
+// This service handles document processing and question answering
+// by connecting to your backend API
 
-// Mock summarization and question answering service for demo purposes
+// Backend API URL - update this with your actual backend endpoint
+const API_BASE_URL = "https://your-backend-api.com"; // Replace with your actual backend URL
+
 export const documentService = {
   // Function to analyze a question against document content
-  analyzeQuestion: (question: string, documentContext: string): Promise<string> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Simple keyword matching for demo purposes
-        const lowerQuestion = question.toLowerCase();
-        const lowerContext = documentContext.toLowerCase();
-        
-        if (lowerQuestion.includes('summary')) {
-          resolve(`Here's a summary of the document: ${documentContext.slice(0, 150)}...`);
-        }
-        else if (lowerQuestion.includes('main point') || lowerQuestion.includes('key point')) {
-          resolve("The main points in this document include project requirements, resource allocation, and timeline estimates.");
-        }
-        else if (lowerQuestion.includes('timeline') || lowerQuestion.includes('schedule')) {
-          resolve("Based on the document, the project timeline is estimated at 8-12 weeks with key milestones for design, development, and testing phases.");
-        }
-        else if (lowerQuestion.includes('cost') || lowerQuestion.includes('budget')) {
-          resolve("The document mentions budget considerations including resource costs, infrastructure requirements, and contingency allocations.");
-        }
-        else if (lowerQuestion.includes('team') || lowerQuestion.includes('people')) {
-          resolve("The document suggests a team composition of frontend and backend developers, a project manager, and QA engineers.");
-        }
-        else {
-          // Generic response for any other question
-          resolve("Based on the document content, I don't have enough specific information to answer this question. Could you ask something more specific about the document?");
-        }
-      }, 1000);
-    });
+  analyzeQuestion: async (question: string, documentContext: string): Promise<string> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/analyze-question`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ question, documentContext }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.answer;
+    } catch (error) {
+      console.error("Error analyzing question:", error);
+      return "Sorry, there was an error processing your question. Please try again.";
+    }
+  },
+  
+  // New method to upload and process documents
+  uploadDocument: async (file: File): Promise<string> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch(`${API_BASE_URL}/api/upload-document`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      return data.summary;
+    } catch (error) {
+      console.error("Error uploading document:", error);
+      throw new Error("Failed to upload and process the document");
+    }
   }
 };

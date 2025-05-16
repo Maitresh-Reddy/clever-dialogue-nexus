@@ -1,9 +1,9 @@
-
 import { useState } from "react";
 import { Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { documentService } from "@/services/documentService";
 
 interface FileUploadProps {
   onFileProcessed: (summary: string) => void;
@@ -31,26 +31,10 @@ export default function FileUpload({ onFileProcessed, disabled = false }: FileUp
         return;
       }
       
-      // Create FormData and append file
-      const formData = new FormData();
-      formData.append('file', file);
+      // Call your backend service to process the document
+      const summary = await documentService.uploadDocument(file);
       
-      // Mock API call - in a real app, you would send to a backend service
-      // with OCR/document processing capabilities
-      
-      // Simulate processing delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      let summary: string;
-      
-      // Generate mock summary based on file type
-      if (file.type.match('image.*')) {
-        summary = `Image analyzed: ${file.name}. This appears to be a document containing text content. The main points include information about project requirements, timeline estimates, and resource allocation.`;
-      } else {
-        summary = `PDF analyzed: ${file.name}. This document contains multiple sections covering project specifications, technical requirements, and implementation details.`;
-      }
-      
-      // Call the callback with generated summary
+      // Call the callback with the returned summary
       onFileProcessed(summary);
       toast.success("File processed successfully");
       
