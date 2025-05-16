@@ -1,4 +1,3 @@
-
 import { useState, useEffect, FormEvent, KeyboardEvent } from "react";
 import { useParams } from "react-router-dom";
 import { createClient } from "@supabase/supabase-js";
@@ -7,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { Send } from "lucide-react";
+import { Send, FileText, Paperclip } from "lucide-react";
 import { toast } from "sonner";
+import FileUpload from "@/components/FileUpload";
+import { documentService } from "@/services/documentService";
 
 // Get Supabase credentials with appropriate fallback
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder-url.supabase.co';
@@ -18,9 +19,13 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Types for chat messages
 interface Message {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   content: string;
   timestamp: Date;
+  attachment?: {
+    type: "document" | "image";
+    content: string;
+  };
 }
 
 export default function ChatInterface() {
@@ -31,6 +36,8 @@ export default function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const [chatTitle, setChatTitle] = useState("New Conversation");
   const isUsingMockData = supabaseUrl === 'https://placeholder-url.supabase.co';
+  const [showFileUpload, setShowFileUpload] = useState(false);
+  const [documentContext, setDocumentContext] = useState<string | null>(null);
 
   // Load messages for the current chat
   useEffect(() => {
@@ -79,7 +86,7 @@ export default function ChatInterface() {
             // Default welcome message for new chats
             mockMessages.push({
               id: "welcome",
-              role: "assistant",
+              role: "assistant", 
               content: "How can I help you today?",
               timestamp: new Date()
             });
@@ -191,38 +198,43 @@ export default function ChatInterface() {
         }
       }
       
-      // Mock response generation - In a real app, this would call an API
-      setTimeout(async () => {
-        // Generate mock response
-        const response = generateMockResponse(userMessage.content);
-        
-        // Create assistant message
-        const assistantMessage: Message = {
-          id: `assistant-${Date.now()}`,
-          role: "assistant",
-          content: response,
-          timestamp: new Date()
-        };
-        
-        setMessages(prev => [...prev, assistantMessage]);
-        
-        // Save assistant message to Supabase if we have a real chat ID
-        if (!isUsingMockData && chatId) {
-          await supabase
-            .from('chat_messages')
-            .insert([{
-              chat_id: chatId,
-              role: "assistant",
-              content: assistantMessage.content,
-              timestamp: assistantMessage.timestamp.toISOString()
-            }]);
-        }
-        
-        setIsLoading(false);
-      }, 1500);
+      let response: string;
+      
+      // If we have document context and the question seems related to it,
+      // use document service to answer the question
+      if (documentContext) {
+        response = await documentService.analyzeQuestion(input, documentContext);
+      } else {
+        // Use the regular mock response for non-document questions
+        response = generateMockResponse(userMessage.content);
+      }
+      
+      // Create assistant message
+      const assistantMessage: Message = {
+        id: `assistant-${Date.now()}`,
+        role: "assistant",
+        content: response,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, assistantMessage]);
+      
+      // Save assistant message to Supabase if we have a real chat ID
+      if (!isUsingMockData && chatId) {
+        await supabase
+          .from('chat_messages')
+          .insert([{
+            chat_id: chatId,
+            role: "assistant",
+            content: assistantMessage.content,
+            timestamp: assistantMessage.timestamp.toISOString()
+          }]);
+      }
+      
     } catch (error) {
       console.error('Error processing message:', error);
       toast.error('Failed to send message');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -258,6 +270,61 @@ export default function ChatInterface() {
     return "Thank you for your message. As a support assistant, I'm here to help with any questions or issues you might have. Could you provide more details about what you're looking for?";
   };
 
+  // Handle file processing
+  const handleFileProcessed = (summary: string) => {
+    setShowFileUpload(false);
+    setDocumentContext(summary);
+
+    // Create a system message with the document summary
+    const systemMessage: Message = {
+      id: `system-${Date.now()}`,
+      role: "system",
+      content: "Document uploaded and processed successfully.",
+      timestamp: new Date(),
+      attachment: {
+        type: "document",
+        content: summary
+      }
+    };
+    
+    setMessages(prev => [...prev, systemMessage]);
+    
+    // Create assistant message with summary
+    const assistantMessage: Message = {
+      id: `assistant-${Date.now()}`,
+      role: "assistant",
+      content: `I've analyzed your document. Here's a summary:\n\n${summary}\n\nYou can ask me questions about this document.`,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, assistantMessage]);
+    
+    // Save messages to Supabase if we have a real chat ID
+    if (!isUsingMockData && chatId) {
+      Promise.all([
+        supabase
+          .from('chat_messages')
+          .insert([{
+            chat_id: chatId,
+            role: "system",
+            content: systemMessage.content,
+            timestamp: systemMessage.timestamp.toISOString(),
+            metadata: { attachment: systemMessage.attachment }
+          }]),
+        supabase
+          .from('chat_messages')
+          .insert([{
+            chat_id: chatId,
+            role: "assistant",
+            content: assistantMessage.content,
+            timestamp: assistantMessage.timestamp.toISOString()
+          }])
+      ]).catch(error => {
+        console.error('Error saving document messages:', error);
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col h-full max-w-4xl mx-auto px-4">
       {/* Chat header */}
@@ -271,7 +338,8 @@ export default function ChatInterface() {
           <div
             key={message.id}
             className={`flex gap-3 ${
-              message.role === "assistant" ? "justify-start" : "justify-end"
+              message.role === "assistant" ? "justify-start" : 
+              message.role === "system" ? "justify-center" : "justify-end"
             }`}
           >
             {message.role === "assistant" && (
@@ -282,14 +350,22 @@ export default function ChatInterface() {
             )}
             
             <Card
-              className={`p-3 max-w-[80%] ${
+              className={`p-3 ${
                 message.role === "assistant"
-                  ? "bg-muted"
-                  : "bg-primary text-primary-foreground"
+                  ? "bg-muted max-w-[80%]"
+                  : message.role === "system"
+                  ? "bg-secondary text-secondary-foreground max-w-[90%]"
+                  : "bg-primary text-primary-foreground max-w-[80%]"
               }`}
             >
               <div className="space-y-1">
-                <p>{message.content}</p>
+                {message.attachment && (
+                  <div className="flex items-center gap-2 mb-2 pb-2 border-b">
+                    <FileText className="h-4 w-4" />
+                    <span className="text-xs font-medium">Document Processed</span>
+                  </div>
+                )}
+                <p className="whitespace-pre-wrap">{message.content}</p>
                 <p className="text-xs opacity-70">
                   {message.timestamp.toLocaleTimeString()}
                 </p>
@@ -299,7 +375,7 @@ export default function ChatInterface() {
             {message.role === "user" && (
               <Avatar className="h-8 w-8">
                 <AvatarFallback>
-                  {user?.name.charAt(0) || "U"}
+                  {user?.name?.charAt(0) || "U"}
                 </AvatarFallback>
               </Avatar>
             )}
@@ -320,27 +396,57 @@ export default function ChatInterface() {
             </Card>
           </div>
         )}
+        
+        {showFileUpload && (
+          <div className="mx-auto max-w-lg w-full">
+            <FileUpload 
+              onFileProcessed={handleFileProcessed} 
+              disabled={isLoading} 
+            />
+          </div>
+        )}
       </div>
       
       {/* Input form */}
       <form onSubmit={handleSubmit} className="mb-6">
-        <div className="flex items-end gap-2">
-          <Textarea
-            placeholder="Type your message..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="resize-none min-h-[80px]"
-            disabled={isLoading}
-          />
-          <Button
-            type="submit"
-            size="icon"
-            className="h-[80px] w-[80px]"
-            disabled={isLoading || !input.trim()}
-          >
-            <Send />
-          </Button>
+        <div className="flex flex-col gap-2">
+          <div className="flex items-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="flex-shrink-0"
+              onClick={() => setShowFileUpload(!showFileUpload)}
+              disabled={isLoading}
+              title="Upload document"
+            >
+              <Paperclip className="h-5 w-5" />
+            </Button>
+            <Textarea
+              placeholder="Type your message or ask about uploaded documents..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="resize-none min-h-[80px]"
+              disabled={isLoading}
+            />
+            <Button
+              type="submit"
+              size="icon"
+              className="h-[80px] w-[80px]"
+              disabled={isLoading || !input.trim()}
+            >
+              <Send />
+            </Button>
+          </div>
+          {documentContext && (
+            <div className="text-xs text-muted-foreground ml-11">
+              <span className="flex items-center gap-1">
+                <FileText className="h-3 w-3" />
+                Document context is active. Ask questions about your uploaded document.
+              </span>
+            </div>
+          )}
         </div>
       </form>
     </div>
