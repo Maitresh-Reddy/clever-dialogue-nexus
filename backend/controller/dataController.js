@@ -76,3 +76,44 @@ export const newchat=async (req,res)=>{
     res.json({ history: history_chat });
     
 }
+
+export const chatemployee = async (req, res) => {
+  try {
+    const question = req.body.question;
+    const pdfPath = req.body.pdf;
+
+    if (!question) {
+      return res.status(400).json({ error: 'Question is required' });
+    }
+
+    let pythonProcess;
+    let output = '';
+    const pythonPath="/Users/savir/Projects/clever-dialogue-nexus/env/bin/python"
+    const pythonScript1 = path.join(__dirname, '../py/model.py');
+    const pythonScript2 = path.join(__dirname, '../py/pdf_qa.py');
+    if (pdfPath) {
+      pythonProcess = spawn(pythonPath, [pythonScript2, pdfPath, question]);
+    } else {
+      pythonProcess = spawn(pythonPath, [pythonScript1, question]);
+    }
+
+    pythonProcess.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    pythonProcess.stderr.on('data', (data) => {
+      console.error(`Python error: ${data}`);
+    });
+
+    pythonProcess.on('close', (code) => {
+      if (code !== 0) {
+        return res.status(500).json({ error: 'Python script failed' });
+      }
+      res.json({ answer: output.trim() });
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
