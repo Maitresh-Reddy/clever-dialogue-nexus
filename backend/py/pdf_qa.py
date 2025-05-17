@@ -1,24 +1,28 @@
 import sys
-import fitz
-from transformers import pipeline, set_seed
+import fitz 
+from transformers import pipeline
 
 def extract_text_from_pdf(pdf_path):
     doc = fitz.open(pdf_path)
     text = ""
     for page in doc:
         text += page.get_text()
-    return text
+    return text.strip()
 
 def ask_question_from_pdf(pdf_text, question):
-    prompt = f"{pdf_text[:1000]}\n\nQuestion: {question}\nAnswer:"
-    generator = pipeline(
-        "text-generation",
-        model="gpt2",
-        pad_token_id=50256
-    )
-    set_seed(42)
-    result = generator(prompt, max_length=200, do_sample=True, truncation=True)
-    return result[0]["generated_text"]
+    context = pdf_text[:4000]
+
+    qa_pipeline = pipeline("question-answering", model="deepset/roberta-base-squad2")
+
+    result = qa_pipeline({
+        'context': context,
+        'question': question
+    })
+
+    if result['score'] < 0.3 or result['answer'].strip() == "":
+        return "Sorry, I could not find an answer in the PDF."
+
+    return result['answer']
 
 def main():
     if len(sys.argv) < 3:
@@ -27,6 +31,7 @@ def main():
 
     pdf_path = sys.argv[1]
     question = " ".join(sys.argv[2:])
+
     try:
         pdf_text = extract_text_from_pdf(pdf_path)
         answer = ask_question_from_pdf(pdf_text, question)

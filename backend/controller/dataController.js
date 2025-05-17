@@ -80,21 +80,52 @@ export const newchat=async (req,res)=>{
 export const chatemployee = async (req, res) => {
   try {
     const question = req.body.question;
-    const pdfPath = req.body.pdf;
+    const file = req.file;
 
+    console.log(question);
+    console.log(file);
+    
+    
     if (!question) {
       return res.status(400).json({ error: 'Question is required' });
     }
 
     let pythonProcess;
     let output = '';
-    const pythonPath="/Users/savir/Projects/clever-dialogue-nexus/env/bin/python"
+
+
+    const pythonPath = "/Users/savir/Projects/clever-dialogue-nexus/env/bin/python";
+
     const pythonScript1 = path.join(__dirname, '../py/model.py');
     const pythonScript2 = path.join(__dirname, '../py/pdf_qa.py');
-    if (pdfPath) {
+
+
+    if (file) {
+      const pdfPath = file.path;
+
       pythonProcess = spawn(pythonPath, [pythonScript2, pdfPath, question]);
-    } else {
+
+      pythonProcess.on('close', (code) => {
+        fs.unlink(pdfPath, (err) => {
+          if (err) console.error("File cleanup error:", err);
+        });
+
+        if (code !== 0) {
+          return res.status(500).json({ error: 'Python script failed' });
+        }
+        res.json({ answer: output.trim() });
+      });
+    }
+
+    else {
       pythonProcess = spawn(pythonPath, [pythonScript1, question]);
+
+      pythonProcess.on('close', (code) => {
+        if (code !== 0) {
+          return res.status(500).json({ error: 'Python script failed' });
+        }
+        res.json({ answer: output.trim() });
+      });
     }
 
     pythonProcess.stdout.on('data', (data) => {
@@ -103,13 +134,6 @@ export const chatemployee = async (req, res) => {
 
     pythonProcess.stderr.on('data', (data) => {
       console.error(`Python error: ${data}`);
-    });
-
-    pythonProcess.on('close', (code) => {
-      if (code !== 0) {
-        return res.status(500).json({ error: 'Python script failed' });
-      }
-      res.json({ answer: output.trim() });
     });
 
   } catch (err) {
