@@ -11,6 +11,8 @@ const __dirname = path.dirname(__filename);
 
 global.chat = [];
 global.response = [];
+global.chat_employee=[];
+global.response_employee=[];
 
 export const sendChat = async (req, res) => {
     console.log('Received POST /sendChat');
@@ -84,7 +86,7 @@ export const chatemployee = async (req, res) => {
 
     console.log(question);
     console.log(file);
-    
+    global.chat_employee.push(question);
     
     if (!question) {
       return res.status(400).json({ error: 'Question is required' });
@@ -124,6 +126,7 @@ export const chatemployee = async (req, res) => {
         if (code !== 0) {
           return res.status(500).json({ error: 'Python script failed' });
         }
+        global.response_employee.push(output);
         res.json({ answer: output.trim() });
       });
     }
